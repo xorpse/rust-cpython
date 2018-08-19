@@ -49,20 +49,21 @@ pub fn prepare_freethreaded_python() {
     // Note that we do not protect against concurrent initialization of the Python runtime
     // by other users of the Python C API.
     START.call_once(|| unsafe {
+        // For 3.7, Py_Initialize initializes the GIL, no need for PyEval_InitThreads
         if ffi::Py_IsInitialized() != 0 {
             // If Python is already initialized, we expect Python threading to also be initialized,
             // as we can't make the existing Python main thread acquire the GIL.
-            assert!(ffi::PyEval_ThreadsInitialized() != 0);
+            // assert!(ffi::PyEval_ThreadsInitialized() != 0);
         } else {
             // If Python isn't initialized yet, we expect that Python threading isn't initialized either.
-            assert!(ffi::PyEval_ThreadsInitialized() == 0);
+            // assert!(ffi::PyEval_ThreadsInitialized() == 0);
             // Initialize Python.
             // We use Py_InitializeEx() with initsigs=0 to disable Python signal handling.
             // Signal handling depends on the notion of a 'main thread', which doesn't exist in this case.
             // Note that the 'main thread' notion in Python isn't documented properly;
             // and running Python without one is not officially supported.
             ffi::Py_InitializeEx(0);
-            ffi::PyEval_InitThreads();
+            // ffi::PyEval_InitThreads();
             // PyEval_InitThreads() will acquire the GIL,
             // but we don't want to hold it at this point
             // (it's not acquired in the other code paths)
